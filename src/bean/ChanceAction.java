@@ -4,14 +4,18 @@ public class ChanceAction {
 	
 	private double probability;
 	private String action;
+	private State endingState;
 	
-	public ChanceAction(String action) {
+	public ChanceAction(String action, State state) {
 		this.action = action;
+		this.endingState = state;
 	}
 	
-	public ChanceAction(String action, double probability) {
+	
+	public ChanceAction(String action, double probability, State state) {
 		this.action = action;
 		this.probability = probability;
+		this.endingState = state;
 	}
 	
 	public void addProbability(double probability) {
@@ -24,6 +28,20 @@ public class ChanceAction {
 	
 	public double getChance() {
 		return this.probability;
+	}
+	
+	public State getEndingState() {
+		return this.endingState;
+	}
+	
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Action: " + action);
+		builder.append("\t");
+		builder.append("EndingState: " + endingState.getName());
+		builder.append("\t");
+		builder.append("Probability: " + probability);
+		return builder.toString();
 	}
 
 }
