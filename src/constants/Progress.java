@@ -12,11 +12,14 @@ public class Progress {
 	//this  is where we will record data for each iteration.
 	//this is just going to focus on gathering utilities rather than probabilities
 	//will record utility for each state/action pair
-	public int interationNumber;
-	
+	public int iterationNumber;
 	
 	private Map<String, State> nameToStateExplored = new HashMap<>();
 	private Set<String> allStatesExplored = new HashSet<>();
+	
+	public Progress() {
+		iterationNumber = 0;
+	}
 	
 	//need to also store all the progress states currently explored
 	public Map<String, State> getNameToStateMapExplored() {
@@ -32,7 +35,9 @@ public class Progress {
 		this.nameToStateExplored.put(t.getName(), t);
 		this.allStatesExplored.add(t.getName());
 	}
-	
+	public void updateIteration() {
+		iterationNumber++;
+	}
 	
 
 }

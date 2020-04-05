@@ -20,9 +20,12 @@ public class State {
 	
 	private Map<String, List<ChanceAction>> actionNameToChanceMap;
 	
-	//and the following is for maintaining progress
+	//and the following is for maintaining progress on utility
 	private Map<String, ActionUtility> nameToActionUtilityObject;
 	private Queue<ActionUtility> sortedUtilities;
+	
+	//and the following is for maintain progress on action probability
+	private Map<String, ActionEndState> nameToEndState;
 		
 	public State(String name) {
 		actions = new ArrayList<>();
@@ -30,6 +33,7 @@ public class State {
 		actionNameToChanceMap = new HashMap<>();
 		nameToActionUtilityObject = new HashMap<>();
 		sortedUtilities = new PriorityQueue<>();
+		this.nameToEndState = new HashMap<>();
 	}
 	
 	public void addAction(String action, double probability, State endingState) {
@@ -127,7 +131,35 @@ public class State {
 		builder.append(this.getCurrentBestActionToPerform().toString());
 		return builder.toString();
 	}
-
+	
+	//the following methods are for creating a transition table
+	public void addNewEndState(String action, State endState) {
+		ActionEndState e = this.getActionEndStateObject(action);
+		this.nameToEndState.put(action, e);
+		e.addEndState(endState);
+	}
+	
+	public List<ActionEndState> getListOfEndStates() {
+		return Arrays.asList(this.nameToEndState.values().toArray(new ActionEndState[this.nameToEndState.values().size()]));
+	}
+	
+	public ActionEndState getActionEndStateObject(String action) {
+		if (!this.nameToEndState.containsKey(action)) {
+			return new ActionEndState(action);
+		}
+		return nameToEndState.get(action);
+	}
+	
+	public String printProbabilityTables() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("STATE: " + this.getName());
+		builder.append("\n");
+		for (ActionEndState e : this.nameToEndState.values()) {
+			builder.append(e.toString());
+		}
+		builder.append("\n");
+		return builder.toString();
+	}
 	
 	private void addActionToQueue(ActionUtility a) {
 		if (!this.sortedUtilities.contains(a)) {

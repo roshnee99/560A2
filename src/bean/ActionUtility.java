@@ -41,7 +41,11 @@ public class ActionUtility implements Comparable<ActionUtility> {
 		//some algorithm here based on iterations
 		//for now it just returns the average but should be some function that takes current expected
 		//and the most recent addition to the recordOfUtilities list
-		expectedUtility = recordOfUtilities.stream().mapToInt(val -> val).average().orElse(0.0);
+		double sum = 0.0;
+		for (Integer i : recordOfUtilities) {
+			sum += i;
+		}
+		expectedUtility = sum / recordOfUtilities.size();
 	}
 	
 	/**
