@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
@@ -17,11 +19,17 @@ public class State {
 	private List<ChanceAction> actions;
 	
 	private Map<String, List<ChanceAction>> actionNameToChanceMap;
+	
+	//and the following is for maintaining progress
+	private Map<String, ActionUtility> nameToActionUtilityObject;
+	private Queue<ActionUtility> sortedUtilities;
 		
 	public State(String name) {
 		actions = new ArrayList<>();
 		this.name = name;
 		actionNameToChanceMap = new HashMap<>();
+		nameToActionUtilityObject = new HashMap<>();
+		sortedUtilities = new PriorityQueue<>();
 	}
 	
 	public void addAction(String action, double probability, State endingState) {
@@ -92,6 +100,39 @@ public class State {
 	
 	public boolean isInHole(Truths constantFile) {
 		return this.getName().equals(constantFile.getEndStateName());
+	}
+	
+	//following methods are for maintaining progress
+	public void addNewUtility(String action, int utility) {
+		ActionUtility a = this.getActionUtilityObject(action);
+		a.addUtility(utility);
+		addActionToQueue(a);
+	}
+	
+	public ActionUtility getActionUtilityObject(String action) {
+		if (!nameToActionUtilityObject.containsKey(action)) {
+			return new ActionUtility(action);
+		}
+		return nameToActionUtilityObject.get(action);
+	}
+	
+	public ActionUtility getCurrentBestActionToPerform() {
+		return this.sortedUtilities.element();
+	}
+	
+	public String printUtilityTable() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("StartState: " + this.getName());
+		builder.append("\t->\t");
+		builder.append(this.getCurrentBestActionToPerform().toString());
+		return builder.toString();
+	}
+
+	
+	private void addActionToQueue(ActionUtility a) {
+		if (!this.sortedUtilities.contains(a)) {
+			this.sortedUtilities.add(a);
+		}
 	}
 	
 	private State generateRandomState(TreeMap<Double, State> map) {

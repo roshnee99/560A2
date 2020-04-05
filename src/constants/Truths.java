@@ -28,6 +28,9 @@ public class Truths {
 	public void addStateName(String stateName) {
 		this.allStateName.add(stateName);
 	}
+	public Set<String> getStateNames() {
+		return this.allStateName;
+	}
 	public Map<String, State> getTruthNameToStateMap() {
 		return this.trueNameToState;
 	}
