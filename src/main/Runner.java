@@ -37,14 +37,14 @@ public class Runner {
 			System.out.println(t.printUtilityTable());
 		}
 		
+		progressFile.clearAll();
+		
 		stateNames = constantFile.getStateNames();
 		for (String s : stateNames) {
 			for (int i = 0; i < 500; i++) {
 				sim.playHoleCalcProb(s, true);
 			}
 		}
-		
-		
 		
 		System.out.println("\nPROBABILITY ANALYSIS:\n");
 		exploredStates = progressFile.getNameToStateMapExplored();

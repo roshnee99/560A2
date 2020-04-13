@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class ActionEndState {
 
@@ -16,6 +17,8 @@ public class ActionEndState {
 	//each states occurence in a list
 	private String action;
 	List<State> recordOfStatesVisited;
+	
+	private Map<State, Double> probabilityMap;
 			
 	public ActionEndState(String action) {
 		this.action = action;
@@ -28,6 +31,10 @@ public class ActionEndState {
 	
 	public void addEndState(State endState) {
 		this.recordOfStatesVisited.add(endState);
+	}
+	
+	public Set<State> getUniqueStatesVisited() {
+		return this.getProbabilitiesForOutcome().keySet();
 	}
 	
 	public String toString() {
@@ -46,7 +53,14 @@ public class ActionEndState {
 	}
 	
 	public Map<State, Double> getProbabilitiesForOutcome() {
-		Map<State, Double> probabilityMap = new HashMap<>();
+		if (probabilityMap == null) {
+			return this.getProbabilitiesForOutcomeFirstTime();
+		}
+		return probabilityMap;
+	}
+	
+	private Map<State, Double> getProbabilitiesForOutcomeFirstTime() {
+		probabilityMap = new HashMap<>();
 		Map<State, Double> frequencyMap = this.getStateFrequencyMap();
 		for (State s : frequencyMap.keySet()) {
 			double probability = frequencyMap.get(s) / this.recordOfStatesVisited.size();

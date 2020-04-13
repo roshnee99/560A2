@@ -166,7 +166,8 @@ public class State {
 			if (term < minSum) {
 				minSum = term;
 				this.currentBestAction = a;
-			}			
+			}
+//			minSum = term;
 		}
 		return 1 + (discountValue*minSum);
 	}
@@ -178,12 +179,17 @@ public class State {
 		}
 		ActionEndState aePair = this.getActionEndStateObject(actionName);
 		Map<State, Double> probabilities = aePair.getProbabilitiesForOutcome();
-		List<State> possibleEndStates = aePair.recordOfStatesVisited;
+		Set<State> possibleEndStates = aePair.getUniqueStatesVisited();
 		double sum = 0;
 		for (State endState : possibleEndStates) {
-			double expectedUtility = endState.getExpectedUtility(constantFile, discountValue);
+			if (endState.equals(this)) {
+				continue;
+			}
 			double probability = probabilities.get(endState);
+			System.out.println(probability);
+			double expectedUtility = endState.getExpectedUtility(constantFile, discountValue);
 			double multiplied = expectedUtility * probability;
+			System.out.println(multiplied);
 			sum += multiplied;
 		}
 		return sum;
