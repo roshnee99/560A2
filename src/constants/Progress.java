@@ -39,5 +39,11 @@ public class Progress {
 		iterationNumber++;
 	}
 	
+	public void clearAll() {
+		iterationNumber = 0;
+		nameToStateExplored = new HashMap<>();
+		allStatesExplored = new HashSet<>();
+	}
+	
 
 }

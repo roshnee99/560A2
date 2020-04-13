@@ -26,6 +26,7 @@ public class State {
 	
 	//and the following is for maintain progress on action probability
 	private Map<String, ActionEndState> nameToEndState;
+	private String currentBestAction;
 		
 	public State(String name) {
 		actions = new ArrayList<>();
@@ -34,6 +35,7 @@ public class State {
 		nameToActionUtilityObject = new HashMap<>();
 		sortedUtilities = new PriorityQueue<>();
 		this.nameToEndState = new HashMap<>();
+		currentBestAction = "";
 	}
 	
 	public void addAction(String action, double probability, State endingState) {
@@ -50,6 +52,10 @@ public class State {
 			actionNameToChanceMap.put(c.getAction(), new ArrayList<>());
 		}
 		actionNameToChanceMap.get(c.getAction()).add(c);
+	}
+	
+	public Set<String> getActionNames() {
+		return this.actionNameToChanceMap.keySet();
 	}
 	
 	public List<ChanceAction> getActions() {
@@ -148,6 +154,43 @@ public class State {
 			return new ActionEndState(action);
 		}
 		return nameToEndState.get(action);
+	}
+	
+	public double getExpectedUtility(Truths constantFile, double discountValue) {
+		if (this.isInHole(constantFile)) {
+			return 0;
+		}
+		double minSum = Double.MAX_VALUE;
+		for(String a : this.getActionNames()) {
+			double term = this.getExpectedUtilityForAction(a, discountValue, constantFile);
+			if (term < minSum) {
+				minSum = term;
+				this.currentBestAction = a;
+			}			
+		}
+		return 1 + (discountValue*minSum);
+	}
+	
+
+	public double getExpectedUtilityForAction(String actionName, double discountValue, Truths constantFile) {
+		if (this.isInHole(constantFile)) {
+			return 0;
+		}
+		ActionEndState aePair = this.getActionEndStateObject(actionName);
+		Map<State, Double> probabilities = aePair.getProbabilitiesForOutcome();
+		List<State> possibleEndStates = aePair.recordOfStatesVisited;
+		double sum = 0;
+		for (State endState : possibleEndStates) {
+			double expectedUtility = endState.getExpectedUtility(constantFile, discountValue);
+			double probability = probabilities.get(endState);
+			double multiplied = expectedUtility * probability;
+			sum += multiplied;
+		}
+		return sum;
+	}
+	
+	public String getCurrentBestAction() {
+		return this.currentBestAction;
 	}
 	
 	public String printProbabilityTables() {

@@ -1,9 +1,11 @@
 package main;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import bean.ChanceAction;
 import bean.State;
 import constants.Progress;
 import constants.Truths;
@@ -23,31 +25,43 @@ public class Runner {
 		reader.loadStates();
 
 		Simulator sim = new Simulator(constantFile, progressFile);
-//		Set<String> stateNames = constantFile.getStateNames();
-//		for (String s : stateNames) {
-//			for (int i = 0; i < 5; i++) {
-//				sim.lengthToFinish(s, true);
-//			}
-//		}
-//		System.out.println("\nUTILITY ANALYSIS:\n");
-//		Map<String, State> exploredStates = progressFile.getNameToStateMapExplored();
-//		for (State t : exploredStates.values()) {
-//			System.out.println(t.printUtilityTable());
-//		}
-		
 		Set<String> stateNames = constantFile.getStateNames();
+		for (String s : stateNames) {
+			for (int i = 0; i < 5; i++) {
+				sim.playHoleTrackUtility(s, true);
+			}
+		}
+		System.out.println("\nUTILITY ANALYSIS:\n");
+		Map<String, State> exploredStates = progressFile.getNameToStateMapExplored();
+		for (State t : exploredStates.values()) {
+			System.out.println(t.printUtilityTable());
+		}
+		
+		stateNames = constantFile.getStateNames();
 		for (String s : stateNames) {
 			for (int i = 0; i < 500; i++) {
 				sim.playHoleCalcProb(s, true);
 			}
 		}
 		
+		
+		
 		System.out.println("\nPROBABILITY ANALYSIS:\n");
-		Map<String, State> exploredStates = progressFile.getNameToStateMapExplored();
+		exploredStates = progressFile.getNameToStateMapExplored();
 		for (State t : exploredStates.values()) {
 			System.out.println(t.printProbabilityTables());
 		}
 		
+		System.out.println("\nUTILITY - MODEL-BASED ANALYSIS");
+		exploredStates = progressFile.getNameToStateMapExplored();
+		for (State t : exploredStates.values()) {
+			System.out.println("STATE: " + t.getName());
+			for (String a : t.getActionNames()) {
+				double expectedUtility = t.getExpectedUtilityForAction(a, 0.09, constantFile);
+				System.out.println(a +  "\t->\tExpected Utility: " + expectedUtility);
+			}
+		}
+//		
 		
 //		System.out.println(sim.getEndingState("Same", "Putt").getName());
 //		System.out.println(constantFile.getEndStateName());

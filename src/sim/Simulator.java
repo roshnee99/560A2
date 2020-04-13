@@ -40,7 +40,6 @@ public class Simulator {
 		if (t.isInHole(constantFile)) {
 			return 0;
 		}
-		System.out.println(t.getName());
 		String actionToPlay = random ? t.generateRandomAction() : t.getCurrentBestActionToPerform().toString();
 		State endState = getEndingState(startState, actionToPlay);
 		//can comment out - allows to see the path to hole
