@@ -18,12 +18,13 @@ public class Truths {
 
 	//for the ground truth
 	public String getEndStateName() {
-		for (String s : this.allStateName) {
-			if(!trueNameToState.containsKey(s)) {
-				return s;
-			}
-		}
-		return "None";
+		return "In";
+//		for (String s : this.allStateName) {
+//			if(!trueNameToState.containsKey(s)) {
+//				return s;
+//			}
+//		}
+//		return "None";
 	}
 	public void addStateName(String stateName) {
 		this.allStateName.add(stateName);
@@ -36,7 +37,10 @@ public class Truths {
 	}
 	public State getTruthStateFromName(String name) {
 		if (!this.trueNameToState.containsKey(name)) {
-			return new State(name);
+			State s = new State(name);
+			System.out.println("Creating end state");
+			this.trueNameToState.put(name, s);
+			return s;
 		}
 		return this.trueNameToState.get(name);
 	}

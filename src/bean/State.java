@@ -55,7 +55,7 @@ public class State {
 	}
 	
 	public Set<String> getActionNames() {
-		return this.actionNameToChanceMap.keySet();
+		return this.nameToEndState.keySet();
 	}
 	
 	public List<ChanceAction> getActions() {
@@ -157,18 +157,36 @@ public class State {
 	}
 	
 	public double getExpectedUtility(Truths constantFile, double discountValue) {
+		// no utility once you reach the hole
 		if (this.isInHole(constantFile)) {
 			return 0;
 		}
 		double minSum = Double.MAX_VALUE;
+		
+		// traverse through all the actions
+		System.out.println(this.getActionNames());
 		for(String a : this.getActionNames()) {
-			double term = this.getExpectedUtilityForAction(a, discountValue, constantFile);
-			if (term < minSum) {
-				minSum = term;
-				this.currentBestAction = a;
+			ActionEndState aePair = this.getActionEndStateObject(a);
+			Map<State, Double> probabilities = aePair.getProbabilitiesForOutcome();
+			Set<State> possibleEndStates = probabilities.keySet();
+			double sum = 0;
+			
+			//sum over all the possible states
+			for (State endState : possibleEndStates) {
+				double probability = probabilities.get(endState);
+				// if end state is the same as the state we're looking at
+				if (endState.getName().equals(this.getName())) {
+					continue;
+				} else {
+					double expectedUtility = endState.getExpectedUtility(constantFile, discountValue);
+					sum += (expectedUtility * probability);
+				}
 			}
-//			minSum = term;
+			if (sum < minSum) {
+				minSum = sum;
+			}
 		}
+		// take the minimum expected utility and multiply it by discount value + reward
 		return 1 + (discountValue*minSum);
 	}
 	
@@ -183,7 +201,7 @@ public class State {
 		double sum = 0;
 		for (State endState : possibleEndStates) {
 			if (endState.equals(this)) {
-				continue;
+				
 			}
 			double probability = probabilities.get(endState);
 			System.out.println(probability);
@@ -209,6 +227,7 @@ public class State {
 		builder.append("\n");
 		return builder.toString();
 	}
+	
 	
 	private void addActionToQueue(ActionUtility a) {
 		if (!this.sortedUtilities.contains(a)) {

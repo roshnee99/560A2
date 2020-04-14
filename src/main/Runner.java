@@ -22,7 +22,9 @@ public class Runner {
 		Truths constantFile = new Truths();
 		Progress progressFile = new Progress();
 		TextFileReader reader = new TextFileReader("Test Probability File.txt", constantFile);
+		constantFile.getTruthStateFromName("In");
 		reader.loadStates();
+		
 
 		Simulator sim = new Simulator(constantFile, progressFile);
 		Set<String> stateNames = constantFile.getStateNames();
@@ -56,10 +58,11 @@ public class Runner {
 		exploredStates = progressFile.getNameToStateMapExplored();
 		for (State t : exploredStates.values()) {
 			System.out.println("STATE: " + t.getName());
-			for (String a : t.getActionNames()) {
-				double expectedUtility = t.getExpectedUtilityForAction(a, 0.09, constantFile);
-				System.out.println(a +  "\t->\tExpected Utility: " + expectedUtility);
-			}
+			System.out.println(t.getExpectedUtility(constantFile, 0.09));
+//			for (String a : t.getActionNames()) {
+//				double expectedUtility = t.getExpectedUtilityForAction(a, 0.09, constantFile);
+//				System.out.println(a +  "\t->\tExpected Utility: " + expectedUtility);
+//			}
 		}
 //		
 		
