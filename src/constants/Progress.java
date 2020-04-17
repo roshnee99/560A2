@@ -7,18 +7,16 @@ import java.util.Set;
 
 import bean.State;
 
+// this class keeps track of any progress and what states have been explored on the simulator
 public class Progress {
-	
-	//this  is where we will record data for each iteration.
-	//this is just going to focus on gathering utilities rather than probabilities
-	//will record utility for each state/action pair
-	public int iterationNumber;
-	
+		
 	private Map<String, State> nameToStateExplored = new HashMap<>();
 	private Set<String> allStatesExplored = new HashSet<>();
 	
-	public Progress() {
-		iterationNumber = 0;
+	private Truths constantFile;
+	
+	public Progress(Truths constantFile) {
+		this.constantFile = constantFile;
 	}
 	
 	//need to also store all the progress states currently explored
@@ -27,7 +25,7 @@ public class Progress {
 	}
 	public State getStateFromName(String name) {
 		if (!this.nameToStateExplored.containsKey(name)) {
-			return new State(name);
+			return constantFile.getTruthStateFromName(name);
 		}
 		return this.nameToStateExplored.get(name);
 	}
@@ -35,12 +33,8 @@ public class Progress {
 		this.nameToStateExplored.put(t.getName(), t);
 		this.allStatesExplored.add(t.getName());
 	}
-	public void updateIteration() {
-		iterationNumber++;
-	}
-	
+
 	public void clearAll() {
-		iterationNumber = 0;
 		nameToStateExplored = new HashMap<>();
 		allStatesExplored = new HashSet<>();
 	}

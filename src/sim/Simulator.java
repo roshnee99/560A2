@@ -13,59 +13,49 @@ public class Simulator {
 		this.constantFile = constantFile;
 		this.progressFile = progressFile;
 	}
-	
-	/**
-	 * Here we play the hole from a given state and record the probabilities
-	 * @param startState
-	 */
-	public void playHoleCalcProb(String startState, boolean random) {
+	// starts playing the hole on simulator keeping track of start state, action taken, and end state
+	public void playHoleModelBased(String startState, boolean random, double discountRate) {
 		State t = constantFile.getTruthStateFromName(startState);
-		if (t.isInHole(constantFile)) {
+		if (t.isInHole()) {
 			return;
 		}
-		String actionToPlay = random ? t.generateRandomAction() : t.getCurrentBestActionToPerform().toString();
+		String actionToPlay = random ? t.generateRandomAction() : t.getCurrentBestActionModelBased();
 		State endState = getEndingState(startState, actionToPlay);
-		this.updateProbabilityFiles(t, actionToPlay, endState);
-		playHoleCalcProb(endState.getName(), random);
+		this.updateModelBasedFiles(t, actionToPlay, endState);
+		playHoleModelBased(endState.getName(), random, discountRate);
+		t.updateCurrentUtilityModelBased(discountRate);
 	}
-	
-	/**
-	 * Finds the number of shots to get to the "In" state from a random state
-	 * Will choose a random action at each time
-	 * @param startState
-	 * @return
-	 */
-	public int playHoleTrackUtility(String startState, boolean random) {
+	// starts playing the hole on simulator keeping track of start state, action taken, and number of shots to hole
+	public int playHoleModelFree(String startState, boolean random, double learningRate) {
 		State t = constantFile.getTruthStateFromName(startState);
-		if (t.isInHole(constantFile)) {
+		if (t.isInHole()) {
 			return 0;
 		}
-		String actionToPlay = random ? t.generateRandomAction() : t.getCurrentBestActionToPerform().toString();
+		String actionToPlay = random ? t.generateRandomAction() : t.getBestActionModelFree().getActionName();
 		State endState = getEndingState(startState, actionToPlay);
-		//can comment out - allows to see the path to hole
-//		System.out.println("StartState: " + startState + "\t->\t" + "Action: " + actionToPlay + "\t->\t" +
-//		"EndState: " + endState.getName());
-		int utility = 1 + playHoleTrackUtility(endState.getName(), random);
-		updateUtilityFiles(t, actionToPlay, utility);
+		int utility = 1 + playHoleModelFree(endState.getName(), random, learningRate);
+		updateModelFreeFiles(t, actionToPlay, utility, learningRate);
+		t.updateCurrentUtilityModelFree(learningRate, utility, actionToPlay);
 		return utility;
 	}
 	
-	
-	public State getEndingState(String state, String action) {
+	// function of the actual simulator.
+	// uses ground truth to determine some state where ball ends up in
+	private State getEndingState(String state, String action) {
 		State startState = constantFile.getTruthStateFromName(state);
 		return startState.getRandomEndingState(action);
 	}
-	
-	private void updateUtilityFiles(State startState, String action, int util) {
-		startState.addNewUtility(action, util);
+	// updates all the files pertaining to a model free search
+	// does NOT track the actual end state, merely the action taken and how many strokes to the end hole
+	private void updateModelFreeFiles(State startState, String action, int util, double learningRate) {
+		startState.addNewActionUtility(action, util, learningRate);
 		progressFile.addExploredStateToMap(startState);
-		progressFile.updateIteration();
 	}
-	
-	private void updateProbabilityFiles(State startState, String action, State endState) {
-		startState.addNewEndState(action, endState);
+	// updates all files pertaining to a model based search
+	// includes the endState and the action taken from a given start state
+	private void updateModelBasedFiles(State startState, String action, State endState) {
+		startState.addNewEndStateDest(action, endState);
 		progressFile.addExploredStateToMap(startState);
-		progressFile.updateIteration();
 	}
 
 }

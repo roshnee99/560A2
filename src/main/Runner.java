@@ -1,11 +1,9 @@
 package main;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import bean.ChanceAction;
+import bean.ActionUtilityMF;
 import bean.State;
 import constants.Progress;
 import constants.Truths;
@@ -13,61 +11,87 @@ import readers.TextFileReader;
 import sim.Simulator;
 
 public class Runner {
-	
-	//TO DO STILL:
-	//need to fix the return expectedUtility of actionUtility
-	//at the moment, it just returns the average of every utility found -- no loss formula
-	
-	public static void main(String [] args) throws IOException {
+
+	private static final double MODEL_FREE_LEARNING_RATE = 0.1;
+	// implies x% exploration, (1-x)% exploitation ---- where x is MODEL_FREE_EPSILON
+	private static final double MODEL_FREE_EPSILON = 0.66;
+	private static final int MODEL_FREE_ITERATIONS = 300;
+
+	private static final double MODEL_BASED_DISCOUNT_RATE = 0.9;
+	// implies x% exploration, (1-x)% exploitation ---- where x is MODEL_BASED_EPSILON
+	private static final double MODEL_BASED_EPSILON = 0.5;
+	private static final int MODEL_BASED_ITERATIONS = 200;
+
+	public static void main(String[] args) throws IOException {
+		// initialize process and constant tracking files
 		Truths constantFile = new Truths();
-		Progress progressFile = new Progress();
+		Progress progressFile = new Progress(constantFile);
 		TextFileReader reader = new TextFileReader("Test Probability File.txt", constantFile);
-		constantFile.getTruthStateFromName("In");
+		// load all the states from the text file and their ground truth probabilities
 		reader.loadStates();
+		String startState = "Fairway"; // start state
+		String endState = "In"; // start state
+		constantFile.getTruthStateFromName(endState);
+		
+		// start up simulator
+		Simulator sim = new Simulator(constantFile, progressFile);
+		// initialize map tracking which states have been visited
+		Map<String, State> exploredStates;
+		// initialize the exploration and exploitation balance for model-free learning
+		int numExploreModelFree = (int) Math.floor(MODEL_FREE_EPSILON * MODEL_FREE_ITERATIONS);
+		int numExploitModelFree = MODEL_FREE_ITERATIONS - numExploreModelFree;
+		// initialize the exploration and exploitation balance for model-based learning
+		int numExploreModelBased = (int) Math.floor(MODEL_BASED_EPSILON * MODEL_BASED_ITERATIONS);
+		int numExploitModelBased = MODEL_BASED_ITERATIONS - numExploreModelBased;
 		
 
-		Simulator sim = new Simulator(constantFile, progressFile);
-		Set<String> stateNames = constantFile.getStateNames();
-		for (String s : stateNames) {
-			for (int i = 0; i < 5; i++) {
-				sim.playHoleTrackUtility(s, true);
-			}
+		/*********
+		 * NOW WE PERFORM A MODEL FREE ANALYSIS. NO PROBABILITIES ARE TRACKED.
+		 ************/
+
+		for (int i = 0; i < numExploreModelFree; i++) { // explore
+			sim.playHoleModelFree(startState, true, MODEL_FREE_LEARNING_RATE);
 		}
-		System.out.println("\nUTILITY ANALYSIS:\n");
-		Map<String, State> exploredStates = progressFile.getNameToStateMapExplored();
+		for (int i = 0; i < numExploitModelFree; i++) { // exploit
+			sim.playHoleModelFree(startState, false, MODEL_FREE_LEARNING_RATE);
+		}
+		System.out.println("UTILITY ANALYSIS - MODEL FREE:\n");
+		exploredStates = progressFile.getNameToStateMapExplored();
 		for (State t : exploredStates.values()) {
-			System.out.println(t.printUtilityTable());
+			System.out.print("STATE: " + t.getName());
+			ActionUtilityMF a = t.getBestActionModelFree();
+			System.out.print("\tEXPECTED UTILITY: " + a.getExpectedUtilityModelFree());
+			System.out.println("\tBEST ACTION: " + a.getActionName());
 		}
-		
 		progressFile.clearAll();
 		
-		stateNames = constantFile.getStateNames();
-		for (String s : stateNames) {
-			for (int i = 0; i < 500; i++) {
-				sim.playHoleCalcProb(s, true);
-			}
+		/*********
+		 * NOW WE PERFORM A MODEL BASED ANALYSIS. PROBABILITIES ARE TRACKED.
+		 ************/
+
+		System.out.println("\nUTILITY MODEL BASED:\n");
+		for (int i = 0; i < numExploreModelBased; i++) { // explore
+			sim.playHoleModelBased(startState, true, MODEL_BASED_DISCOUNT_RATE);
 		}
-		
-		System.out.println("\nPROBABILITY ANALYSIS:\n");
+		for (int i = 0; i < numExploitModelBased; i++) { // exploit
+			sim.playHoleModelBased(startState, false, MODEL_BASED_DISCOUNT_RATE);
+		}
+		exploredStates = progressFile.getNameToStateMapExplored();
+		for (State t : exploredStates.values()) {
+			System.out.print("STATE: " + t.getName());
+			System.out.print("\tEXPECTED UTILITY: " + t.getCurrentUtilityModelBased());
+			System.out.println("\tBEST ACTION: " + t.getCurrentBestActionModelBased());
+		}
+
+		/*********
+		 * WE CAN ALSO PRINT THE PROBABILITY TABLE FROM THE MODEL-BASED ANALYSIS
+		 ************/
+		System.out.println("\nPROBABILITY TABLES:\n");
 		exploredStates = progressFile.getNameToStateMapExplored();
 		for (State t : exploredStates.values()) {
 			System.out.println(t.printProbabilityTables());
 		}
-		
-		System.out.println("\nUTILITY - MODEL-BASED ANALYSIS");
-		exploredStates = progressFile.getNameToStateMapExplored();
-		for (State t : exploredStates.values()) {
-			System.out.println("STATE: " + t.getName());
-			System.out.println(t.getExpectedUtility(constantFile, 0.09));
-//			for (String a : t.getActionNames()) {
-//				double expectedUtility = t.getExpectedUtilityForAction(a, 0.09, constantFile);
-//				System.out.println(a +  "\t->\tExpected Utility: " + expectedUtility);
-//			}
-		}
-//		
-		
-//		System.out.println(sim.getEndingState("Same", "Putt").getName());
-//		System.out.println(constantFile.getEndStateName());
+
 	}
 
 }

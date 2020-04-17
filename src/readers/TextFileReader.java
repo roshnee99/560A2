@@ -4,14 +4,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import bean.State;
 import constants.Truths;
 
+// this class reads the text file and gets all the start states and probabilities for building the simulator
 public class TextFileReader {
 	
 	private String fileName;

@@ -7,6 +7,7 @@ import java.util.Set;
 
 import bean.State;
 
+// this class keeps track of all the ground truths for building the simulator
 public class Truths {
 
 	private Map<String, State> trueNameToState = new HashMap<>();
@@ -16,16 +17,6 @@ public class Truths {
 		//do nothing
 	}
 
-	//for the ground truth
-	public String getEndStateName() {
-		return "In";
-//		for (String s : this.allStateName) {
-//			if(!trueNameToState.containsKey(s)) {
-//				return s;
-//			}
-//		}
-//		return "None";
-	}
 	public void addStateName(String stateName) {
 		this.allStateName.add(stateName);
 	}
@@ -38,7 +29,6 @@ public class Truths {
 	public State getTruthStateFromName(String name) {
 		if (!this.trueNameToState.containsKey(name)) {
 			State s = new State(name);
-			System.out.println("Creating end state");
 			this.trueNameToState.put(name, s);
 			return s;
 		}

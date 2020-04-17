@@ -1,5 +1,9 @@
 package bean;
 
+// This object is connected to the State object
+// Keeps track of an action and the probability of it ending into another state
+// Ground truth -- this class is ONLY used for the Simulator
+
 public class ChanceAction {
 	
 	private double probability;

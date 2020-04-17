@@ -12,41 +12,70 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
-import constants.Truths;
-
-public class State {	
+public class State {
+	// name of the state
 	private String name;
-	private List<ChanceAction> actions;
 	
+	/********** FOR THE SIMULATOR *******************/
+	// list of possible actions to end state pairings
+	private List<ChanceAction> actions;
+	// the name of the action to the list of probabilities and end states
 	private Map<String, List<ChanceAction>> actionNameToChanceMap;
 	
-	//and the following is for maintaining progress on utility
-	private Map<String, ActionUtility> nameToActionUtilityObject;
-	private Queue<ActionUtility> sortedUtilities;
-	
-	//and the following is for maintain progress on action probability
-	private Map<String, ActionEndState> nameToEndState;
-	private String currentBestAction;
+	/********** FOR THE MODEL FREE LEARNING *******************/
+	// this is a name to ActionUtilityMap so can grab one single instance
+	private Map<String, ActionUtilityMF> nameToActionUtilityObject;
+	// this is a priority queue with the utilities ranked by what's the current best action
+	private Queue<ActionUtilityMF> sortedModelFreeUtilities;
+	// this is an "average" style utility -- regardless of the action, what your utility will be
+	private double currentUtilityModelFree;
 		
+	/********** FOR THE MODEL BASED LEARNING *******************/
+	// this is a name to  ActionEndState object to grab one single instance
+	private Map<String, ActionEndStateMB> nameToEndState;
+	// this is the ideal action to take at any point
+	private String currentBestActionModelBased;
+	// this is the current expected utility based on all previous iterations
+	private double currentUtilityModelBased;
+		
+	
 	public State(String name) {
 		actions = new ArrayList<>();
 		this.name = name;
 		actionNameToChanceMap = new HashMap<>();
 		nameToActionUtilityObject = new HashMap<>();
-		sortedUtilities = new PriorityQueue<>();
+		sortedModelFreeUtilities = new PriorityQueue<>();
 		this.nameToEndState = new HashMap<>();
-		currentBestAction = "";
+		currentBestActionModelBased = "";
+		currentUtilityModelBased = 1;
+		currentUtilityModelFree = 0;
 	}
 	
+	public String getName() {
+		return this.name;
+	}
+	public boolean isInHole() {
+		return this.getName().equals("In");
+	}
+	
+	/*********** BECAUSE WE USE STATE AS THE KEY TO HASHMAPS ***************/
+	@Override
+	public int hashCode() {
+		return this.name.hashCode();
+	}
+	
+	public boolean equals(State other) {
+		return this.getName().equals(other.getName());
+	}
+	
+	/*********** FOR BUILDING GROUND TRUTH ***************/
 	public void addAction(String action, double probability, State endingState) {
 		this.addAction(new ChanceAction(action, probability, endingState));
 	}
-	
 	public void addAction(ChanceAction c) {
 		actions.add(c);
 		addItemToActionMap(c);
-	}
-	
+	}	
 	private void addItemToActionMap(ChanceAction c) {
 		if (!actionNameToChanceMap.containsKey(c.getAction())) {
 			actionNameToChanceMap.put(c.getAction(), new ArrayList<>());
@@ -54,18 +83,8 @@ public class State {
 		actionNameToChanceMap.get(c.getAction()).add(c);
 	}
 	
-	public Set<String> getActionNames() {
-		return this.nameToEndState.keySet();
-	}
 	
-	public List<ChanceAction> getActions() {
-		return this.actions;
-	}
-	
-	public String getName() {
-		return this.name;
-	}
-	
+	/*********** FOR BUILDING SIMULATOR *****************/
 	public State getRandomEndingState(String action) {
 		List<ChanceAction> possibleActions = this.actionNameToChanceMap.get(action);
 		double currProbCount = 0;
@@ -90,155 +109,118 @@ public class State {
 		return actionName;
 	}
 	
-	public List<State> getPossibleDestinations() {
-		List<State> destinationStates = new ArrayList<>();
-		for (ChanceAction a : this.actions) {
-			destinationStates.add(a.getEndingState());
-		}
-		return destinationStates;
+	private State generateRandomState(TreeMap<Double, State> map) {
+		double randomNumber = Math.random();
+		Entry<Double, State> e = map.floorEntry(randomNumber);
+		return e.getValue();
 	}
 	
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("StartState: " + name + "\n");
-		for (ChanceAction c : this.actions) {
-			builder.append(c.toString());
-			builder.append("\n");
-		}
-		return builder.toString();
-	}	
-	
-	public boolean isInHole(Truths constantFile) {
-		return this.getName().equals(constantFile.getEndStateName());
+	/*********** FOR MODEL FREE LEARNING  ***************/
+	public ActionUtilityMF getBestActionModelFree() {
+		return this.sortedModelFreeUtilities.element();
 	}
-	
-	//following methods are for maintaining progress
-	public void addNewUtility(String action, int utility) {
-		ActionUtility a = this.getActionUtilityObject(action);
-		a.addUtility(utility);
-		addActionToQueue(a);
+	public double getCurrentUtilityModelFree() {
+		if (this.isInHole()) {
+			return 0;
+		} 
+		return currentUtilityModelFree;
 	}
-	
-	public ActionUtility getActionUtilityObject(String action) {
+	// just a getter method for the Action Utility objects
+	public ActionUtilityMF getActionUtilityObject(String action, double learningRate) {
 		if (!nameToActionUtilityObject.containsKey(action)) {
-			return new ActionUtility(action);
+			ActionUtilityMF a = new ActionUtilityMF(action, learningRate);
+			nameToActionUtilityObject.put(action, a);
+			return a;
 		}
 		return nameToActionUtilityObject.get(action);
 	}
-	
-	public ActionUtility getCurrentBestActionToPerform() {
-		return this.sortedUtilities.element();
+	// both updates the expected utility after taking an action AND overall utility for the state
+	// at the same learning rate (adds a percentage of the difference between current and observed utility)
+	public void updateCurrentUtilityModelFree (double learningRate, double observedUtility, String action) {
+		ActionUtilityMF a = this.nameToActionUtilityObject.get(action);
+		a.updateCurrentUtilityModelFree(observedUtility);
+		this.currentUtilityModelFree += learningRate*(observedUtility - currentUtilityModelFree);
 	}
 	
-	public String printUtilityTable() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("StartState: " + this.getName());
-		builder.append("\t->\t");
-		builder.append(this.getCurrentBestActionToPerform().toString());
-		return builder.toString();
+	// whenever you add an action, add the new utility object
+	// maintain the queue of current best utility and action
+	public void addNewActionUtility(String action, int utility, double learningRate) {
+		ActionUtilityMF a = this.getActionUtilityObject(action, learningRate);
+		addActionToQueue(a);
+	}
+	private void addActionToQueue(ActionUtilityMF a) {
+		if (!this.sortedModelFreeUtilities.contains(a)) {
+			this.sortedModelFreeUtilities.add(a);
+		}
 	}
 	
-	//the following methods are for creating a transition table
-	public void addNewEndState(String action, State endState) {
-		ActionEndState e = this.getActionEndStateObject(action);
-		this.nameToEndState.put(action, e);
-		e.addEndState(endState);
+	/*********** FOR MODEL BASED LEARNING ***************/
+	public String getCurrentBestActionModelBased() {
+		return this.currentBestActionModelBased;
 	}
-	
-	public List<ActionEndState> getListOfEndStates() {
-		return Arrays.asList(this.nameToEndState.values().toArray(new ActionEndState[this.nameToEndState.values().size()]));
+	public double getCurrentUtilityModelBased() {
+		if (this.isInHole()) {
+			return 0;
+		}
+		return this.currentUtilityModelBased;
 	}
-	
-	public ActionEndState getActionEndStateObject(String action) {
+	// just a getter for the ActionEndState object
+	public ActionEndStateMB getActionEndStateObject(String action) {
 		if (!this.nameToEndState.containsKey(action)) {
-			return new ActionEndState(action);
+			ActionEndStateMB e = new ActionEndStateMB(action);
+			this.nameToEndState.put(action, e);
+			return e;
 		}
 		return nameToEndState.get(action);
 	}
+	// helper to add new end states to the actionEndState
+	// need to keep a record of every state visited for best probability measure
+	public void addNewEndStateDest(String action, State endState) {
+		ActionEndStateMB e = this.getActionEndStateObject(action);
+		e.addEndState(endState);
+	}
 	
-	public double getExpectedUtility(Truths constantFile, double discountValue) {
-		// no utility once you reach the hole
-		if (this.isInHole(constantFile)) {
-			return 0;
+	public void updateCurrentUtilityModelBased (double discountValue) {
+		// if in hole, utility must remain 0
+		if (this.isInHole()) {
+			currentUtilityModelBased += 0;
 		}
+		// keeps track of minimum sum amongst all the actions
 		double minSum = Double.MAX_VALUE;
-		
-		// traverse through all the actions
-		System.out.println(this.getActionNames());
-		for(String a : this.getActionNames()) {
-			ActionEndState aePair = this.getActionEndStateObject(a);
+		// iterate over all the actions to calculate individual utilities for each action.
+		// goal is to find the action that results in lowest utility
+		for(String a : this.nameToEndState.keySet()) {
+			ActionEndStateMB aePair = this.nameToEndState.get(a); 
 			Map<State, Double> probabilities = aePair.getProbabilitiesForOutcome();
 			Set<State> possibleEndStates = probabilities.keySet();
 			double sum = 0;
-			
-			//sum over all the possible states
+			// see all the possible end states. For each end state, multiply the current expected utility and the 
+			// probability of ending up in that state
 			for (State endState : possibleEndStates) {
 				double probability = probabilities.get(endState);
-				// if end state is the same as the state we're looking at
-				if (endState.getName().equals(this.getName())) {
-					continue;
-				} else {
-					double expectedUtility = endState.getExpectedUtility(constantFile, discountValue);
-					sum += (expectedUtility * probability);
-				}
+				double expectedUtility = endState.getCurrentUtilityModelBased();
+				sum += (expectedUtility * probability);
 			}
+			// pick the minimum term thus far
 			if (sum < minSum) {
 				minSum = sum;
+				this.currentBestActionModelBased = a;
 			}
 		}
-		// take the minimum expected utility and multiply it by discount value + reward
-		return 1 + (discountValue*minSum);
+		// current utility is reward + (discountValue * minimum term)
+		currentUtilityModelBased = 1 + (discountValue*minSum);
 	}
-	
 
-	public double getExpectedUtilityForAction(String actionName, double discountValue, Truths constantFile) {
-		if (this.isInHole(constantFile)) {
-			return 0;
-		}
-		ActionEndState aePair = this.getActionEndStateObject(actionName);
-		Map<State, Double> probabilities = aePair.getProbabilitiesForOutcome();
-		Set<State> possibleEndStates = aePair.getUniqueStatesVisited();
-		double sum = 0;
-		for (State endState : possibleEndStates) {
-			if (endState.equals(this)) {
-				
-			}
-			double probability = probabilities.get(endState);
-			System.out.println(probability);
-			double expectedUtility = endState.getExpectedUtility(constantFile, discountValue);
-			double multiplied = expectedUtility * probability;
-			System.out.println(multiplied);
-			sum += multiplied;
-		}
-		return sum;
-	}
-	
-	public String getCurrentBestAction() {
-		return this.currentBestAction;
-	}
-	
+	/*********** FOR PRINTING PROBABILITY TABLES ***************/
 	public String printProbabilityTables() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("STATE: " + this.getName());
 		builder.append("\n");
-		for (ActionEndState e : this.nameToEndState.values()) {
+		for (ActionEndStateMB e : this.nameToEndState.values()) {
 			builder.append(e.toString());
 		}
 		builder.append("\n");
 		return builder.toString();
 	}
 	
-	
-	private void addActionToQueue(ActionUtility a) {
-		if (!this.sortedUtilities.contains(a)) {
-			this.sortedUtilities.add(a);
-		}
-	}
-	
-	private State generateRandomState(TreeMap<Double, State> map) {
-		double randomNumber = Math.random();
-		Entry<Double, State> e = map.floorEntry(randomNumber);
-		return e.getValue();
-	}
-
 }
