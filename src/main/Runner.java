@@ -14,13 +14,13 @@ public class Runner {
 
 	private static final double MODEL_FREE_LEARNING_RATE = 0.1;
 	// implies x% exploration, (1-x)% exploitation ---- where x is MODEL_FREE_EPSILON
-	private static final double MODEL_FREE_EPSILON = 0.66;
-	private static final int MODEL_FREE_ITERATIONS = 300;
+	private static final double MODEL_FREE_EPSILON = 0.75;
+	private static final int MODEL_FREE_ITERATIONS = 16000;
 
 	private static final double MODEL_BASED_DISCOUNT_RATE = 0.9;
 	// implies x% exploration, (1-x)% exploitation ---- where x is MODEL_BASED_EPSILON
-	private static final double MODEL_BASED_EPSILON = 0.5;
-	private static final int MODEL_BASED_ITERATIONS = 200;
+	private static final double MODEL_BASED_EPSILON = 0.8;
+	private static final int MODEL_BASED_ITERATIONS = 4000;
 
 	public static void main(String[] args) throws IOException {
 		// initialize process and constant tracking files
@@ -30,7 +30,7 @@ public class Runner {
 		// load all the states from the text file and their ground truth probabilities
 		reader.loadStates();
 		String startState = "Fairway"; // start state
-		String endState = "In"; // start state
+		String endState = "In"; // end state
 		constantFile.getTruthStateFromName(endState);
 		
 		// start up simulator
